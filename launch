@@ -1,0 +1,7 @@
+#!/bin/bash
+
+gcc -Wall -Wextra -pedantic -g -Iheaders -lncurses ./src/* -o bin/main
+
+sleep 1
+
+./bin/main $1
