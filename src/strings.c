@@ -1,5 +1,6 @@
 #include "../include/strings.h"
 
+
 static String resize(String str){
     char* tmp;
     size_t new_size;
@@ -51,6 +52,30 @@ String init_string_from(const char* cptr){
     }
 
     return str;
+}
+
+int equals(String s1,String s2){
+    if (s1 == s2) return 1;
+    if (s1 == NULL || s2 == NULL) return 0;
+    if (s1->lsize != s2->lsize) return 0;
+    if (s1->lsize == 0) return 1;
+    if (s1->cptr == NULL || s2->cptr == NULL) return 0;
+
+    return memcmp(s1->cptr, s2->cptr, s1->lsize) == 0;
+}
+
+int starts_with_character(String s,char ch){
+    if(s!=NULL && s->cptr!=NULL && *(s->cptr)==ch){
+        return 1;   
+    }
+    return 0;
+}
+
+int ends_with_character(String s,char ch){
+    if(s!=NULL && s->cptr!=NULL && *(s->cptr+s->lsize)==ch){
+        return 1;   
+    }
+    return 0;
 }
 
 String init_string_of(size_t psize){

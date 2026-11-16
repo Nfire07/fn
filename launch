@@ -1,7 +1,39 @@
 #!/bin/bash
 
+(sudo pacman -S --needed ncurses less xxd file xdg-utils) 2> /dev/null
+(sudo apk add ncurses less vim file xdg-utils) 2> /dev/null
+(xdg-mime default code-oss.desktop \
+    text/plain \
+    text/markdown \
+    text/html \
+    text/css \
+    text/csv \
+    text/xml \
+    text/x-c \
+    text/x-c++ \
+    text/x-chdr \
+    text/x-csrc \
+    text/x-python \
+    text/x-java \
+    text/x-shellscript \
+    text/x-perl \
+    text/x-ruby \
+    text/x-php \
+    text/x-yaml \
+    text/x-toml \
+    application/json \
+    application/xml \
+    application/javascript \
+    application/x-javascript \
+    application/x-httpd-php \
+    application/x-sh \
+    application/x-yaml \
+    application/x-toml \
+    application/xhtml+xml \
+    application/rtf) 2> /dev/null
+
 gcc -Wall -Wextra -pedantic -g -Iheaders -lncurses ./src/* -o bin/main
 
-sleep 1
-
 ./bin/main $1
+
+reset

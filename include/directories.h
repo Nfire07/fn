@@ -10,10 +10,10 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <linux/limits.h>
 #include <unistd.h>
 #include <pwd.h>
 #include <grp.h>
-
 
 #define INITIAL_PSIZE_DIRECTORY 16
 
@@ -38,9 +38,10 @@ typedef Directory_t* Directory;
 
 Directory directory(const char* path);
 Directory new_directory();
-void print_entry(DirEntry entry,int col_width);
-void ll(Directory dir,size_t underlined_entry);
-DirEntry direntry();
+String abs_path(const char* path);
+void ll(Directory dir, size_t underlined_entry, size_t offset);
+int cd(Directory* dir,DirEntry entry,String* path);
+int cd_rel(Directory* dir,String* path,String movement);
 int add_entry(Directory dir,DirEntry entry);
 void free_directory(Directory dir);
 

@@ -1,6 +1,7 @@
 #include "../include/directories.h"
 
 
+
 static String get_permissions(mode_t mode) {
     String perm = init_string_of(11);
 
@@ -92,7 +93,7 @@ Directory new_directory(){
     return dir;
 }
 
-DirEntry direntry(){
+static DirEntry direntry(){
     return calloc(1,sizeof(DirEntry_t));
 }
 
@@ -129,29 +130,7 @@ void free_directory(Directory dir){
     }
 }
 
-static int count_digits(uint64_t size){
-    if(size==0) return 1;
-    int count = 0;
-    while(size>0){
-        size/=10;
-        count++;
-    }
-    return count;
-}
-
-int max(int a,int b){
-    return a>b ? a : b;
-}
-
-static int max_value_in(int* max_printer_size){
-    int max_value=0;
-    for(size_t i=0;i<6;i++){
-        max_value=max(max_printer_size[i],max_value);
-    }   
-    return max_value;
-}
-
-void print_entry(DirEntry entry, int col_width) {
+static void print_entry(DirEntry entry, int col_width) {
     int w = (col_width > 1) ? col_width - 1 : 1;
 
     printw("%-*.*s %-*lu %-*.*s %-*.*s %-*.*s %-*.*s\n",
@@ -163,8 +142,8 @@ void print_entry(DirEntry entry, int col_width) {
            w, w, entry->name->cptr);
 }
 
-void ll(Directory dir, size_t underlined_entry) {
-    if (dir == NULL) return;
+void ll(Directory dir, size_t underlined_entry, size_t offset) {
+    if(dir == NULL) return;
 
     int rows, cols;
     getmaxyx(stdscr, rows, cols);
@@ -173,6 +152,7 @@ void ll(Directory dir, size_t underlined_entry) {
     int w = (col_width > 1) ? col_width - 1 : 1;
 
     attron(A_BOLD | A_UNDERLINE);
+
     printw("%-*.*s %-*.*s %-*.*s %-*.*s %-*.*s %-*.*s\n",
            w, w, "permission",
            w, w, "size",
@@ -180,23 +160,28 @@ void ll(Directory dir, size_t underlined_entry) {
            w, w, "group",
            w, w, "date",
            w, w, "name");
+
     attroff(A_BOLD | A_UNDERLINE);
 
     size_t max_items = (rows > 1) ? (size_t)(rows - 1) : 0;
-    size_t limit = (dir->lsize < max_items) ? dir->lsize : max_items;
 
-    for (size_t i = 0; i < limit; i++) {
-        if (i == underlined_entry) {
-            attron(A_STANDOUT | A_BLINK);
-            print_entry(dir->entries[i], col_width);
-            attroff(A_STANDOUT | A_BLINK);
-        } else {
-            print_entry(dir->entries[i], col_width);
+    size_t remaining = dir->lsize - offset;
+    size_t limit = remaining < max_items ? remaining : max_items;
+
+    for(size_t i = 0; i < limit; i++) {
+
+        size_t index = offset + i;
+
+        if(index == underlined_entry) {
+            attron(A_STANDOUT);
+            print_entry(dir->entries[index], col_width);
+            attroff(A_STANDOUT);
+        }
+        else {
+            print_entry(dir->entries[index], col_width);
         }
     }
 }
-
-
 
 Directory directory(const char* path){
     Directory dir = new_directory();
@@ -230,7 +215,7 @@ Directory directory(const char* path){
         }
         if(char_at(dpath,dpath->lsize-1)!='/'){
             if(push_back(dpath,'/')==0){
-                free(dpath);
+                free_string(dpath);
                 closedir(dp);
                 free_directory(dir);dir=NULL;
                 free_string(name);name=NULL;
@@ -347,4 +332,99 @@ Directory directory(const char* path){
     closedir(dp);
 
     return dir;
-}   
+}
+
+String abs_path(const char *path){
+    if(path==NULL) return NULL;
+    String apath = init_string_of(PATH_MAX);
+    if(apath==NULL){
+        return NULL;
+    }
+    if(apath->cptr==NULL){
+        free_string(apath);
+        return NULL;
+    }
+    if (realpath(path, apath->cptr) != NULL) {
+        apath->lsize = strlen(apath->cptr);
+        return apath;
+    }   
+    free_string(apath);
+    return NULL;
+}
+
+int cd(Directory* dir,DirEntry entry,String* path){
+    if(starts_with_character(entry->permission, 'd') ){
+        if(ends_with_character(*path,'/')){
+            concat(*path,entry->name);
+            String apath = abs_path((*path)->cptr);
+            if(apath==NULL){
+                return 0;
+            }
+            free_string((*path));
+            *path=apath;
+            
+            free_directory(*dir);
+            *dir=directory((*path)->cptr);
+            if(dir==NULL){
+                return 0;
+            }
+        }
+        else{
+            if(push_back(*path, '/')==0){
+                return 0;
+            } 
+            concat(*path,entry->name);
+            String apath = abs_path((*path)->cptr);
+            if(apath==NULL){
+                return 0;
+            }
+            free_string((*path));
+            *path=apath;
+
+            free_directory((*dir));
+            *dir=directory((*path)->cptr);
+            if(*dir==NULL){
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+
+int cd_rel(Directory* dir,String* path,String movement){
+    if(ends_with_character(*path,'/')){
+        concat(*path,movement);
+        String apath = abs_path((*path)->cptr);
+        if(apath==NULL){
+            return 0;
+        }
+        free_string((*path));
+        *path=apath;
+        
+        free_directory(*dir);
+        *dir=directory((*path)->cptr);
+        if(dir==NULL){
+            return 0;
+        }
+    }
+    else{
+        if(push_back(*path, '/')==0){
+            return 0;
+        } 
+        concat(*path,movement);
+        String apath = abs_path((*path)->cptr);
+        if(apath==NULL){
+            return 0;
+        }
+        free_string((*path));
+        *path=apath;
+
+        free_directory((*dir));
+        *dir=directory((*path)->cptr);
+        if(*dir==NULL){
+            return 0;
+        }
+    }
+    return 1;
+}
